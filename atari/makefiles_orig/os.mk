@@ -1,10 +1,6 @@
 ###################################################################
 # Platform Mapping, OS specifics, and Emulator settings
 ###################################################################
-ifeq ($(DEBUG),true)
-    $(info >Starting os.mk)
-endif
-
 
 ifeq ($(CURRENT_TARGET),)
 $(error Missing value for CURRENT_TARGET)
@@ -14,15 +10,6 @@ CURRENT_PLATFORM_apple2 := apple2
 CURRENT_PLATFORM_apple2enh := apple2
 CURRENT_PLATFORM_atari := atari
 CURRENT_PLATFORM_atarixl := atari
-CURRENT_PLATFORM_c64 := c64
-CURRENT_PLATFORM_c128 := c64
-CURRENT_PLATFORM_c16 := c64
-CURRENT_PLATFORM_pet := c64
-CURRENT_PLATFORM_plus4 := c64
-#CURRENT_PLATFORM_x16 := c64
-CURRENT_PLATFORM_cbm510 := c64
-CURRENT_PLATFORM_cbm610 := c64
-CURRENT_PLATFORM_vic20 := c64
 
 CURRENT_PLATFORM = $(CURRENT_PLATFORM_$(CURRENT_TARGET))
 
@@ -36,9 +23,9 @@ else
 endif
 
 # MSYS2 environment hack for extra slash (XS) needed in cmd line args
-XS =
+XS := ""
 ifeq ($(detected_OS),$(filter $(detected_OS),MSYS MINGW))
-	XS = /
+	XS := /
 endif
 
 ifeq ($(shell echo),)

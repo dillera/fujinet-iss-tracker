@@ -359,6 +359,7 @@ void run(void) {
   blit_text(2, 8, "and Bill Shupp's");
   blit_text(1, 9, "\"Where The ISS At?\"");
 
+
   x = 16 - strlen(VERSION_STRING) / 2;
   message(x, 1, "Version ");
   message(x + 8, 1, VERSION_STRING);

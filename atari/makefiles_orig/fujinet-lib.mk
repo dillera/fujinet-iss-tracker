@@ -1,15 +1,6 @@
-###################################################################
-# fujinet-lib
-###################################################################
-ifeq ($(DEBUG),true)
-    $(info >Starting fujinet-lib.mk)
-endif
+FUJINET_LIB_VERSION := 4.3.1
 
-$(info >>>> Using FUJINET_LIB_VERSION=$(FUJINET_LIB_VERSION))
-# set FN_LIB_VERSION in your local Makefile
-
-
-FUJINET_LIB = ../_libs
+FUJINET_LIB = _libs
 FUJINET_LIB_VERSION_DIR = $(FUJINET_LIB)/$(FUJINET_LIB_VERSION)-$(CURRENT_TARGET)
 FUJINET_LIB_PATH = $(FUJINET_LIB_VERSION_DIR)/fujinet-$(CURRENT_TARGET)-$(FUJINET_LIB_VERSION).lib
 

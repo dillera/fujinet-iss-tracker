@@ -1,9 +1,5 @@
 # Generic Build script for CC65
 #
-# THIS VERSION IS SPECIFIC TO fujinet-lib-examples
-# THE ONLY DIFFERENCES BEING USING "../makefiles/" INSTEAD OF "./makefiles/" TO AVOID COPYING INTO EVERY APP DIR
-# AND INCLUDING "./application.mk" TO ALLOW FOR THE ANY APP SPECIFIC VALUES
-#
 # This file is only responsible for compiling source code.
 # It has some hooks for additional behaviour, see Additional Make Files below.
 # 
@@ -32,19 +28,12 @@
 #     VERSION_STRING := $(file < $(VERSION_FILE))
 #     CFLAGS += -DVERSION_STRING=\"$(VERSION_STRING)\"
 
-ifeq ($(DEBUG),true)
-    $(info >Starting build.mk)
-endif
-
-
 # Ensure WSL2 Ubuntu and other linuxes use bash by default instead of /bin/sh, which does not always like the shell commands.
 SHELL := /usr/bin/env bash
 ALL_TASKS =
 DISK_TASKS =
 
-# try and load some target mappings for all platforms
--include ./makefiles/os.mk
-
+-include makefiles/os.mk
 
 CC := cl65
 
@@ -65,72 +54,37 @@ SOURCES += $(wildcard $(SRCDIR)/*.s)
 SOURCES += $(call rwildcard,$(SRCDIR)/common/,*.s)
 SOURCES += $(call rwildcard,$(SRCDIR)/common/,*.c)
 
-# allow src/<platform>/ and its recursive subdirs
-SOURCES_PF := $(call rwildcard,$(SRCDIR)/$(CURRENT_PLATFORM)/,*.s)
-SOURCES_PF += $(call rwildcard,$(SRCDIR)/$(CURRENT_PLATFORM)/,*.c)
-
-# allow src/current-target/<target>/ and its recursive subdirs
-SOURCES_TG := $(call rwildcard,$(SRCDIR)/current-target/$(CURRENT_TARGET)/,*.s)
-SOURCES_TG += $(call rwildcard,$(SRCDIR)/current-target/$(CURRENT_TARGET)/,*.c)
+# allow src/<target>/ and its recursive subdirs
+SOURCES_TG := $(call rwildcard,$(SRCDIR)/$(CURRENT_TARGET)/,*.s)
+SOURCES_TG += $(call rwildcard,$(SRCDIR)/$(CURRENT_TARGET)/,*.c)
 
 # remove trailing and leading spaces.
 SOURCES := $(strip $(SOURCES))
-SOURCES_PF := $(strip $(SOURCES_PF))
 SOURCES_TG := $(strip $(SOURCES_TG))
 
-# convert from src/your/long/path/foo.[c|s] to obj/<target>/your/long/path/foo.o
-# we need the target because compiling for previous target does not pick up potential macro changes
+# convert from src/your/long/path/foo.[c|s] to obj/your/long/path/foo.o
 OBJ1 := $(SOURCES:.c=.o)
 OBJECTS := $(OBJ1:.s=.o)
 OBJECTS := $(OBJECTS:$(SRCDIR)/%=$(OBJDIR)/$(CURRENT_TARGET)/%)
 
-OBJ2 := $(SOURCES_PF:.c=.o)
-OBJECTS_PF := $(OBJ2:.s=.o)
-OBJECTS_PF := $(OBJECTS_PF:$(SRCDIR)/%=$(OBJDIR)/$(CURRENT_TARGET)/%)
-
-OBJ3 := $(SOURCES_TG:.c=.o)
-OBJECTS_TG := $(OBJ3:.s=.o)
+OBJ2 := $(SOURCES_TG:.c=.o)
+OBJECTS_TG := $(OBJ2:.s=.o)
 OBJECTS_TG := $(OBJECTS_TG:$(SRCDIR)/%=$(OBJDIR)/$(CURRENT_TARGET)/%)
 
-OBJECTS += $(OBJECTS_PF)
 OBJECTS += $(OBJECTS_TG)
 
 # Ensure make recompiles parts it needs to if src files change
 DEPENDS := $(OBJECTS:.o=.d)
 
-ASFLAGS += --asm-include-dir src/common --asm-include-dir src/$(CURRENT_PLATFORM) --asm-include-dir src/current-target/$(CURRENT_TARGET)
-CFLAGS += --include-dir src/common --include-dir src/$(CURRENT_PLATFORM) --include-dir src/current-target/$(CURRENT_TARGET)
+ASFLAGS += --asm-include-dir src/common --asm-include-dir src/$(CURRENT_TARGET)
+CFLAGS += --include-dir src/common --include-dir src/$(CURRENT_TARGET)
 
 ASFLAGS += --asm-include-dir $(SRCDIR)
 CFLAGS += --include-dir $(SRCDIR)
 
-
-#
-# load the sub-makefiles
-#
-
-ifeq ($(DEBUG),true)
-    $(info >>load common.mk)
-endif
-
+# allow for additional flags etc
 -include ./makefiles/common.mk
-
-
-ifeq ($(DEBUG),true)
-    $(info >>load custom-$(CURRENT_PLATFORM).mk)
-endif
-
 -include ./makefiles/custom-$(CURRENT_PLATFORM).mk
-
-
-ifeq ($(DEBUG),true)
-    $(info >>load application.mk)
-endif
-
-# allow for application specific config
--include ./application.mk
-
-
 
 define _listing_
   CFLAGS += --listing $$(@:.o=.lst)
@@ -146,7 +100,7 @@ define _labelfile_
 endef
 
 .SUFFIXES:
-.PHONY: all clean release $(DISK_TASKS) $(BUILD_TASKS) $(PROGRAM_TGT) $(ALL_TASKS)
+.PHONY: all clean release $(DISK_TASKS) $(BUILD_TASKS) $(PROGRAM).$(CURRENT_TARGET)
 
 all: $(ALL_TASKS) $(PROGRAM_TGT)
 
@@ -206,22 +160,12 @@ $(BUILD_DIR)/$(PROGRAM_TGT): $(OBJECTS) $(LIBS) | $(BUILD_DIR)
 
 $(PROGRAM_TGT): $(BUILD_DIR)/$(PROGRAM_TGT) | $(BUILD_DIR)
 
-
-ifeq ($(DEBUG),true)
-    $(info PROGRAM_TGT is set to: $(PROGRAM_TGT) )
-    $(info BUILD_DIR is set to: $(BUILD_DIR) )
-    $(info CURRENT_TARGET is set to: $(CURRENT_TARGET) )
-    $(info ........................... )
-endif
-
-
 test: $(PROGRAM_TGT)
 	$(PREEMUCMD)
-	$(EMUCMD) $(BUILD_DIR)/$<
+	$(EMUCMD) $(BUILD_DIR)\\$<
 	$(POSTEMUCMD)
 
-# Use "./" in front of all dirs being removed as a simple safety guard to
-# ensure deleting from current dir, and not something like root "/".
+# Use "./" in front of all dirs being removed as a simple safety guard to ensure deleting from current dir, and not something like root "/".
 clean:
 	@for d in $(BUILD_DIR) $(OBJDIR) $(DIST_DIR); do \
       if [ -d "./$$d" ]; then \
@@ -231,7 +175,6 @@ clean:
     done
 
 release: all | $(BUILD_DIR) $(DIST_DIR)
-#	$(info -in release, about to cp file to dist:)
 	cp $(BUILD_DIR)/$(PROGRAM_TGT) $(DIST_DIR)/$(PROGRAM_TGT)$(SUFFIX)
 
 disk: release $(DISK_TASKS)
